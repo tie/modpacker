@@ -1,0 +1,21 @@
+mod "base.pack" {
+  file = "base.pack"
+}
+
+mod "mods/OptiFine-F4.jar" {
+  method = "optifine"
+  file   = "OptiFine_1.12.2_HD_U_F4.jar"
+}
+
+mod "mods/AngelRingToBauble-0.3.1.50-d4e654e.jar" {
+  method    = "curse"
+  projectID = 256224
+  fileID    = 2518561
+}
+
+mod "mods/AppleCore-3.2.0" {
+  method    = "curse"
+  action    = "unzip"
+  projectID = 224472
+  fileID    = 2679415
+}
