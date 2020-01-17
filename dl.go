@@ -21,6 +21,13 @@ import (
 	"gopkg.in/src-d/go-billy.v4"
 )
 
+const (
+	methodCurse    = "curse"
+	methodOptifine = "optifine"
+	methodHTTP     = "http"
+	methodFile     = ""
+)
+
 type (
 	cacheFunc func(billy.Basic, Mod) (dir, base string)
 	fetchFunc func(*http.Client, Mod) (string, error)
@@ -44,13 +51,14 @@ type Downloader struct {
 
 func (dl *Downloader) Sums(m Mod) ([]string, error) {
 	switch m.Method {
-	case "curse":
+	case methodCurse:
 		return dl.sumsGeneric(m, curseCachePath, curseFetchURL)
-	case "optifine":
+	case methodOptifine:
 		return dl.sumsGeneric(m, optifineCachePath, optifineFetchURL)
-	case "http":
+	case methodHTTP:
 		return dl.sumsGeneric(m, httpCachePath, httpFetchURL)
-	case "": // file
+	case methodFile:
+		// TODO should we check files integrity?
 		return nil, nil
 	}
 	return nil, ErrUnknownModMethod
@@ -58,13 +66,13 @@ func (dl *Downloader) Sums(m Mod) ([]string, error) {
 
 func (dl *Downloader) Cache(m Mod) error {
 	switch m.Method {
-	case "curse":
+	case methodCurse:
 		return dl.cacheGeneric(m, curseCachePath, curseFetchURL)
-	case "optifine":
+	case methodOptifine:
 		return dl.cacheGeneric(m, optifineCachePath, optifineFetchURL)
-	case "http":
+	case methodHTTP:
 		return dl.cacheGeneric(m, httpCachePath, httpFetchURL)
-	case "": // file
+	case methodFile:
 		return nil
 	}
 	return ErrUnknownModMethod
@@ -72,13 +80,13 @@ func (dl *Downloader) Cache(m Mod) error {
 
 func (dl *Downloader) Open(m Mod) (billy.File, error) {
 	switch m.Method {
-	case "curse":
+	case methodCurse:
 		return dl.downloadGeneric(m, curseCachePath, curseFetchURL)
-	case "optifine":
+	case methodOptifine:
 		return dl.downloadGeneric(m, optifineCachePath, optifineFetchURL)
-	case "http":
+	case methodHTTP:
 		return dl.downloadGeneric(m, httpCachePath, httpFetchURL)
-	case "": // file
+	case methodFile:
 		path := filepath.FromSlash(m.File)
 		f, err := os.Open(path)
 		if err != nil {
