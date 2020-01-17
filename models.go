@@ -16,7 +16,7 @@ type Mod struct {
 	File string
 
 	// ProjectID specifies the project ID on CurseForge.
-	ProjectID int `hcl:"projectID,optional"`
+	ProjectID int
 	// FileID specifies the file ID of the CurseForge project.
 	FileID int
 
