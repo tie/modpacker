@@ -1,13 +1,13 @@
 package main
 
 import (
-	"encoding/json"
 	"context"
-	"path/filepath"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 
 	"github.com/google/subcommands"
 
@@ -15,6 +15,8 @@ import (
 	"github.com/hashicorp/hcl/v2/hclwrite"
 
 	"github.com/tie/internal/renameio"
+
+	"github.com/tie/modpacker/internal/curse"
 )
 
 type BootstrapCommand struct {
@@ -46,7 +48,7 @@ func (cmd *BootstrapCommand) Execute(ctx context.Context, fs *flag.FlagSet, args
 		return subcommands.ExitFailure
 	}
 
-	var cm curseManifest
+	var cm curse.Manifest
 	if err := json.NewDecoder(f).Decode(&cm); err != nil {
 		log.Printf("decode %q: %+v", fpath, err)
 		return subcommands.ExitFailure
@@ -57,10 +59,10 @@ func (cmd *BootstrapCommand) Execute(ctx context.Context, fs *flag.FlagSet, args
 	for _, cf := range cm.Files {
 		path := fmt.Sprintf("mods/%d-%d.jar", cf.ProjectID, cf.FileID)
 		mod := Mod{
-			Path: path,
-			Method: "curse",
+			Path:      path,
+			Method:    "curse",
 			ProjectID: cf.ProjectID,
-			FileID: cf.FileID,
+			FileID:    cf.FileID,
 		}
 		m.Mods = append(m.Mods, mod)
 	}
@@ -100,14 +102,4 @@ func (cmd *BootstrapCommand) Execute(ctx context.Context, fs *flag.FlagSet, args
 		return subcommands.ExitFailure
 	}
 	return subcommands.ExitSuccess
-}
-
-type curseManifest struct {
-	Files []curseFile
-	Overrides string
-}
-
-type curseFile struct {
-	ProjectID int
-	FileID    int
 }
