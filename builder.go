@@ -2,20 +2,38 @@ package modpacker
 
 import (
 	"archive/zip"
+	"bytes"
+	"encoding/json"
 	"io"
 	"log"
 	"path"
 
 	"gopkg.in/src-d/go-billy.v4"
 	"gopkg.in/src-d/go-billy.v4/util"
+
+	"github.com/tie/modpacker/internal/curse"
 )
 
-type Builder struct {
+const (
+	actionNone  = ""
+	actionUnzip = "unzip"
+)
+
+type Builder interface {
+	Add(m Mod) error
+	Close() error
+}
+
+type archiveBuilder struct {
 	Downloader *Downloader
 	Pack       *zip.Writer
 }
 
-func (b *Builder) Add(m Mod) error {
+func NewArchiveBuilder(dl *Downloader, w *zip.Writer) Builder {
+	return &archiveBuilder{dl, w}
+}
+
+func (b *archiveBuilder) Add(m Mod) error {
 	src, err := b.Downloader.Open(m)
 	if err != nil {
 		return err
@@ -27,15 +45,15 @@ func (b *Builder) Add(m Mod) error {
 		}
 	}()
 	switch m.Action {
-	case "":
+	case actionNone:
 		return b.addReader(src, m.Path)
-	case "unzip":
+	case actionUnzip:
 		return b.addUnzip(src, m.Path)
 	}
 	return ErrUnknownModAction
 }
 
-func (b *Builder) addUnzip(f billy.File, dir string) error {
+func (b *archiveBuilder) addUnzip(f billy.File, dir string) error {
 	fi, err := util.Stat(f)
 	if err != nil {
 		return err
@@ -55,7 +73,7 @@ func (b *Builder) addUnzip(f billy.File, dir string) error {
 	return nil
 }
 
-func (b *Builder) addZipFile(f *zip.File, name string) error {
+func (b *archiveBuilder) addZipFile(f *zip.File, name string) error {
 	r, err := f.Open()
 	if err != nil {
 		return err
@@ -63,11 +81,69 @@ func (b *Builder) addZipFile(f *zip.File, name string) error {
 	return b.addReader(r, name)
 }
 
-func (b *Builder) addReader(r io.Reader, name string) error {
+func (b *archiveBuilder) addReader(r io.Reader, name string) error {
 	w, err := b.Pack.Create(name)
 	if err != nil {
 		return err
 	}
 	_, err = io.Copy(w, r)
 	return err
+}
+
+func (b *archiveBuilder) Close() error {
+	return nil
+}
+
+type curseBuilder struct {
+	archiveBuilder
+
+	CurseFiles []curse.File
+}
+
+func NewCurseBuilder(dl *Downloader, w *zip.Writer) Builder {
+	b := archiveBuilder{dl, w}
+	return &curseBuilder{b, nil}
+}
+
+func (b *curseBuilder) Add(m Mod) error {
+	if m.Method != methodCurse || m.Action != actionNone {
+		m.Path = path.Join("overrides", m.Path)
+		return b.archiveBuilder.Add(m)
+	}
+
+	// FIXME How does Curse handle manifests with other modpack projects files?
+	// I doubt it supports inheritance.
+
+	b.CurseFiles = append(b.CurseFiles, curse.File{
+		ProjectID: m.ProjectID,
+		FileID:    m.FileID,
+		Required:  true,
+	})
+	return nil
+}
+
+func (b *curseBuilder) Close() error {
+	// TODO so many things to do.
+	m := curse.Manifest{
+		Minecraft: curse.MinecraftInstance{
+			Version: "", // TODO
+			ModLoaders: []curse.ModLoader{
+				curse.ModLoader{},
+				// TODO
+			},
+		},
+		ManifestType:    "minecraftModpack",
+		ManifestVersion: 1,
+		Name:            "", // TODO
+		Version:         "", // TODO
+		Author:          "", // TODO
+		Desc:            "", // TODO
+		ProjectID:       0,  // TODO
+		Files:           b.CurseFiles,
+	}
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(&m); err != nil {
+		return err
+	}
+	return b.addReader(&buf, "manifest.json")
 }

@@ -29,6 +29,7 @@ func main() {
 	cdr.Register(&CompileCommand{}, "")
 	cdr.Register(&DownloadCommand{}, "")
 	cdr.Register(&FormatCommand{}, "")
+	cdr.Register(&ModlistCommand{}, "")
 	cdr.Register(&SumsCommand{}, "")
 	cdr.Register(cdr.HelpCommand(), "help")
 	cdr.Register(cdr.FlagsCommand(), "help")

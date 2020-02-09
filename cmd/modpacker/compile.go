@@ -18,7 +18,13 @@ import (
 	"github.com/tie/modpacker"
 )
 
+const (
+	OutputModeStandalone = "standalone"
+	OutputModeCurse      = "curse"
+)
+
 type CompileCommand struct {
+	OutputMode   string
 	OutputPath   string
 	DisableCache bool
 }
@@ -26,12 +32,24 @@ type CompileCommand struct {
 func (*CompileCommand) Name() string     { return "compile" }
 func (*CompileCommand) Synopsis() string { return "compile the modpack" }
 func (*CompileCommand) Usage() string {
-	return `Usage: modpacker compile [-o modpack.zip] [-nocache] [manifest paths]
+	return `Usage: modpacker compile [-o modpack.zip] [-mode standalone] [-nocache] [manifest paths]
 
 	Compiles the modpack from manifests. The output is a zip archive
 	containing files specified by "mod" blocks. For each corresponding
 	"check" block the integrity of the mods is verified. Use "sums"
 	subcommand to generate sums manifest for an existing set of files.
+
+        The layout of the files in output archive is specified by -mode
+        option. The supported modes are:
+
+            standalone
+                Standalone archive containing all specified files.
+                This is the default mode.
+            curse
+                Archive compatible with CurseForge/Twitch launcher.
+                In this mode "mod" blocks with "curse" method will be added
+                to manifest.json file instead of being downloaded. The sums
+                for those blocks are therefore ignored.
 
 Flags:
 `
@@ -40,12 +58,21 @@ Flags:
 func (cmd *CompileCommand) SetFlags(fs *flag.FlagSet) {
 	fs.BoolVar(&cmd.DisableCache, "nocache", false, "disable filesystem cache")
 	fs.StringVar(&cmd.OutputPath, "o", "modpack.zip", "modpack output path")
+	fs.StringVar(&cmd.OutputMode, "mode", OutputModeStandalone, "modpack output mode")
 }
 
 func (cmd *CompileCommand) Execute(ctx context.Context, fs *flag.FlagSet, args ...interface{}) (rc subcommands.ExitStatus) {
 	paths := fs.Args()
 	if len(paths) <= 0 {
 		paths = []string{defaultManifest}
+	}
+
+	switch cmd.OutputMode {
+	case OutputModeStandalone:
+	case OutputModeCurse:
+	default:
+		log.Printf("unknown output mode: %q", cmd.OutputMode)
+		return subcommands.ExitFailure
 	}
 
 	m, ok := mergeManifests(paths)
@@ -89,14 +116,17 @@ func (cmd *CompileCommand) Execute(ctx context.Context, fs *flag.FlagSet, args .
 		}
 	}()
 
-	c := &http.Client{}
 	dl := &modpacker.Downloader{
 		Files:  cacheDir,
-		Client: c,
+		Client: &http.Client{},
 	}
-	b := &modpacker.Builder{
-		Downloader: dl,
-		Pack:       z,
+
+	var b modpacker.Builder
+	switch cmd.OutputMode {
+	case OutputModeStandalone:
+		b = modpacker.NewArchiveBuilder(dl, z)
+	case OutputModeCurse:
+		b = modpacker.NewCurseBuilder(dl, z)
 	}
 
 	for _, mod := range m.ModList() {
