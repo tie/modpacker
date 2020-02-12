@@ -64,6 +64,16 @@ func (b *archiveBuilder) addUnzip(f billy.File, dir string) error {
 		return err
 	}
 	for _, f := range z.File {
+		// If last char in file name is slash,
+		// then the file is empty and represents
+		// a directory. We skip those for brevity.
+		l := len(f.Name)
+		if l > 0 {
+			if f.Name[l-1] == '/' {
+				continue
+			}
+		}
+		// TODO should we sanitize name?
 		name := path.Join(dir, f.Name)
 		err := b.addZipFile(f, name)
 		if err != nil {
