@@ -1,4 +1,4 @@
-package modpacker
+package models
 
 import "errors"
 

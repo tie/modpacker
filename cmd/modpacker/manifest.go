@@ -1,6 +1,8 @@
 package main
 
-import "github.com/tie/modpacker"
+import (
+	"github.com/tie/modpacker/models"
+)
 
 type Manifest struct {
 	Mods   []Mod   `hcl:"mod,block"`
@@ -49,14 +51,14 @@ func (c *Check) ID() ModID {
 	}
 }
 
-func (m *Manifest) ModList() []modpacker.Mod {
+func (m *Manifest) ModList() []models.Mod {
 	// Merge check sums into corresponding mods.
 	n := len(m.Mods)
-	mods := make([]modpacker.Mod, n)
-	refs := make(map[ModID]*modpacker.Mod, n)
+	mods := make([]models.Mod, n)
+	refs := make(map[ModID]*models.Mod, n)
 
 	for i, mod := range m.Mods {
-		mm := modpacker.Mod{
+		mm := models.Mod{
 			Path:      mod.Path,
 			Method:    mod.Method,
 			Action:    mod.Action,

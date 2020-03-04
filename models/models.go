@@ -1,4 +1,16 @@
-package modpacker
+package models
+
+const (
+	MethodFile     = ""
+	MethodHTTP     = "http"
+	MethodCurse    = "curse"
+	MethodOptifine = "optifine"
+)
+
+const (
+	ActionNone  = ""
+	ActionUnzip = "unzip"
+)
 
 type Mod struct {
 	// Path is the file name in modpack archive.

@@ -16,7 +16,7 @@ import (
 
 	"github.com/tie/internal/renameio"
 
-	"github.com/tie/modpacker/internal/curse"
+	"github.com/tie/modpacker/models/curse"
 )
 
 type BootstrapCommand struct {

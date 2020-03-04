@@ -17,7 +17,8 @@ import (
 
 	"github.com/tie/internal/renameio"
 
-	"github.com/tie/modpacker"
+	"github.com/tie/modpacker/fetcher"
+	"github.com/tie/modpacker/models"
 )
 
 type SumsCommand struct {
@@ -66,7 +67,7 @@ func (cmd *SumsCommand) Execute(ctx context.Context, fs *flag.FlagSet, args ...i
 		cacheDir = memfs.New()
 	}
 	c := http.Client{}
-	dl := modpacker.Downloader{
+	fetcher := fetcher.Fetcher{
 		Files:  cacheDir,
 		Client: &c,
 	}
@@ -78,7 +79,7 @@ func (cmd *SumsCommand) Execute(ctx context.Context, fs *flag.FlagSet, args ...i
 	}
 
 	for _, mod := range m.ModList() {
-		sums, err := dl.Sums(mod)
+		sums, err := fetcher.Sums(mod)
 		if err != nil {
 			log.Printf("sum %q mod: %+v", mod.Method, err)
 			return subcommands.ExitFailure
@@ -104,7 +105,7 @@ type SumsBuilder struct {
 	Length int
 }
 
-func (b *SumsBuilder) Add(m modpacker.Mod, sums []string) {
+func (b *SumsBuilder) Add(m models.Mod, sums []string) {
 	if b.Length > 0 {
 		b.AppendNewline()
 	}

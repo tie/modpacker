@@ -1,4 +1,4 @@
-package modpacker
+package fetcher
 
 import (
 	"bufio"
@@ -19,74 +19,69 @@ import (
 	"golang.org/x/crypto/sha3"
 
 	"gopkg.in/src-d/go-billy.v4"
-)
 
-const (
-	methodCurse    = "curse"
-	methodOptifine = "optifine"
-	methodHTTP     = "http"
-	methodFile     = ""
+	"github.com/tie/modpacker/models"
 )
 
 type (
-	cacheFunc func(billy.Basic, Mod) (dir, base string)
-	fetchFunc func(*http.Client, Mod) (string, error)
+	cacheFunc func(billy.Basic, models.Mod) (dir, base string)
+	fetchFunc func(*http.Client, models.Mod) (string, error)
 )
 
-func httpCachePath(fs billy.Basic, m Mod) (dir, base string) {
+func httpCachePath(fs billy.Basic, m models.Mod) (dir, base string) {
 	// Good enough is good enough.
 	sum := sha1.Sum([]byte(m.File))
 	hex := fmt.Sprintf("%x", sum)
 	return "http", fs.Join(hex[2:], hex)
 }
 
-func httpFetchURL(c *http.Client, m Mod) (string, error) {
+func httpFetchURL(c *http.Client, m models.Mod) (string, error) {
 	return m.File, nil
 }
 
-type Downloader struct {
+type Fetcher struct {
 	Files  billy.Filesystem
 	Client *http.Client
 }
 
-func (dl *Downloader) Sums(m Mod) ([]string, error) {
+func (dl *Fetcher) Sums(m models.Mod) ([]string, error) {
 	switch m.Method {
-	case methodCurse:
+	case models.MethodCurse:
 		return dl.sumsGeneric(m, curseCachePath, curseFetchURL)
-	case methodOptifine:
+	case models.MethodOptifine:
 		return dl.sumsGeneric(m, optifineCachePath, optifineFetchURL)
-	case methodHTTP:
+	case models.MethodHTTP:
 		return dl.sumsGeneric(m, httpCachePath, httpFetchURL)
-	case methodFile:
+	case models.MethodFile:
 		// TODO should we check files integrity?
 		return nil, nil
 	}
-	return nil, ErrUnknownModMethod
+	return nil, models.ErrUnknownModMethod
 }
 
-func (dl *Downloader) Cache(m Mod) error {
+func (dl *Fetcher) Cache(m models.Mod) error {
 	switch m.Method {
-	case methodCurse:
+	case models.MethodCurse:
 		return dl.cacheGeneric(m, curseCachePath, curseFetchURL)
-	case methodOptifine:
+	case models.MethodOptifine:
 		return dl.cacheGeneric(m, optifineCachePath, optifineFetchURL)
-	case methodHTTP:
+	case models.MethodHTTP:
 		return dl.cacheGeneric(m, httpCachePath, httpFetchURL)
-	case methodFile:
+	case models.MethodFile:
 		return nil
 	}
-	return ErrUnknownModMethod
+	return models.ErrUnknownModMethod
 }
 
-func (dl *Downloader) Open(m Mod) (billy.File, error) {
+func (dl *Fetcher) Open(m models.Mod) (billy.File, error) {
 	switch m.Method {
-	case methodCurse:
+	case models.MethodCurse:
 		return dl.downloadGeneric(m, curseCachePath, curseFetchURL)
-	case methodOptifine:
+	case models.MethodOptifine:
 		return dl.downloadGeneric(m, optifineCachePath, optifineFetchURL)
-	case methodHTTP:
+	case models.MethodHTTP:
 		return dl.downloadGeneric(m, httpCachePath, httpFetchURL)
-	case methodFile:
+	case models.MethodFile:
 		path := filepath.FromSlash(m.File)
 		f, err := os.Open(path)
 		if err != nil {
@@ -94,10 +89,10 @@ func (dl *Downloader) Open(m Mod) (billy.File, error) {
 		}
 		return osFile{f}, err
 	}
-	return nil, ErrUnknownModMethod
+	return nil, models.ErrUnknownModMethod
 }
 
-func (dl *Downloader) sumsGeneric(m Mod, cachePath cacheFunc, fetchURL fetchFunc) ([]string, error) {
+func (dl *Fetcher) sumsGeneric(m models.Mod, cachePath cacheFunc, fetchURL fetchFunc) ([]string, error) {
 	err := dl.cacheGeneric(m, cachePath, fetchURL)
 	if err != nil {
 		return nil, err
@@ -106,7 +101,7 @@ func (dl *Downloader) sumsGeneric(m Mod, cachePath cacheFunc, fetchURL fetchFunc
 	return dl.readSums(dir, base)
 }
 
-func (dl *Downloader) cacheGeneric(m Mod, cachePath cacheFunc, fetchURL fetchFunc) error {
+func (dl *Fetcher) cacheGeneric(m models.Mod, cachePath cacheFunc, fetchURL fetchFunc) error {
 	dir, base := cachePath(dl.Files, m)
 	_, err := dl.statData(dir, base)
 	if !errors.Is(err, os.ErrNotExist) {
@@ -119,7 +114,7 @@ func (dl *Downloader) cacheGeneric(m Mod, cachePath cacheFunc, fetchURL fetchFun
 	return dl.downloadFile(rawurl, dir, base)
 }
 
-func (dl *Downloader) downloadGeneric(m Mod, cachePath cacheFunc, fetchURL fetchFunc) (billy.File, error) {
+func (dl *Fetcher) downloadGeneric(m models.Mod, cachePath cacheFunc, fetchURL fetchFunc) (billy.File, error) {
 	dir, base := cachePath(dl.Files, m)
 	f, err := dl.getFile(dir, base, m.Sums)
 	if !errors.Is(err, os.ErrNotExist) {
@@ -135,7 +130,7 @@ func (dl *Downloader) downloadGeneric(m Mod, cachePath cacheFunc, fetchURL fetch
 	return dl.getFile(dir, base, m.Sums)
 }
 
-func (dl *Downloader) getFile(dir, base string, sums []string) (billy.File, error) {
+func (dl *Fetcher) getFile(dir, base string, sums []string) (billy.File, error) {
 	err := dl.verifySums(sums, dir, base)
 	if err != nil {
 		return nil, err
@@ -148,7 +143,7 @@ func (dl *Downloader) getFile(dir, base string, sums []string) (billy.File, erro
 	return f, err
 }
 
-func (dl *Downloader) readSums(dir, base string) ([]string, error) {
+func (dl *Fetcher) readSums(dir, base string) ([]string, error) {
 	sums := []string{}
 	err := dl.withSums(dir, base, os.O_RDONLY, func(f billy.File) error {
 		defer func() {
@@ -170,7 +165,7 @@ func (dl *Downloader) readSums(dir, base string) ([]string, error) {
 	return sums, nil
 }
 
-func (dl *Downloader) verifySums(sums []string, dir, base string) error {
+func (dl *Fetcher) verifySums(sums []string, dir, base string) error {
 	l := len(sums)
 	if l <= 0 {
 		return nil
@@ -197,12 +192,12 @@ func (dl *Downloader) verifySums(sums []string, dir, base string) error {
 		if _, ok := sumsMap[sum]; ok {
 			continue
 		}
-		return ErrSumsMismatch
+		return models.ErrSumsMismatch
 	}
 	return nil
 }
 
-func (dl *Downloader) downloadFile(rawurl, dir, base string) error {
+func (dl *Fetcher) downloadFile(rawurl, dir, base string) error {
 	hashNames := []string{
 		"md5",
 		"sha1",
@@ -243,7 +238,7 @@ func (dl *Downloader) downloadFile(rawurl, dir, base string) error {
 	return dl.writeSums(dir, base, sums)
 }
 
-func (dl *Downloader) fetchFile(w io.Writer, rawurl string) error {
+func (dl *Fetcher) fetchFile(w io.Writer, rawurl string) error {
 	resp, err := dl.Client.Get(rawurl)
 	if err != nil {
 		return err
@@ -261,7 +256,7 @@ func (dl *Downloader) fetchFile(w io.Writer, rawurl string) error {
 	return nil
 }
 
-func (dl *Downloader) writeSums(dir, base string, sums []string) error {
+func (dl *Fetcher) writeSums(dir, base string, sums []string) error {
 	flags := os.O_WRONLY | os.O_APPEND | os.O_CREATE
 	return dl.withSums(dir, base, flags, func(f billy.File) (err error) {
 		defer func() {
@@ -287,29 +282,29 @@ func (dl *Downloader) writeSums(dir, base string, sums []string) error {
 	})
 }
 
-func (dl *Downloader) statSums(dir, base string) (os.FileInfo, error) {
+func (dl *Fetcher) statSums(dir, base string) (os.FileInfo, error) {
 	return dl.statFile(dir, base, "sum")
 }
 
-func (dl *Downloader) statData(dir, base string) (os.FileInfo, error) {
+func (dl *Fetcher) statData(dir, base string) (os.FileInfo, error) {
 	return dl.statFile(dir, base, "dat")
 }
 
-func (dl *Downloader) statFile(dir, base, ext string) (os.FileInfo, error) {
+func (dl *Fetcher) statFile(dir, base, ext string) (os.FileInfo, error) {
 	fname := fmt.Sprintf("%s.%s", base, ext)
 	fpath := dl.Files.Join(dir, fname)
 	return dl.Files.Stat(fpath)
 }
 
-func (dl *Downloader) withData(dir, base string, flag int, fn func(billy.File) error) error {
+func (dl *Fetcher) withData(dir, base string, flag int, fn func(billy.File) error) error {
 	return dl.withFile(dir, base, "dat", flag, fn)
 }
 
-func (dl *Downloader) withSums(dir, base string, flag int, fn func(billy.File) error) error {
+func (dl *Fetcher) withSums(dir, base string, flag int, fn func(billy.File) error) error {
 	return dl.withFile(dir, base, "sum", flag, fn)
 }
 
-func (dl *Downloader) withFile(dir, base, ext string, flag int, fn func(billy.File) error) error {
+func (dl *Fetcher) withFile(dir, base, ext string, flag int, fn func(billy.File) error) error {
 	if err := dl.Files.MkdirAll(dir, 0755); err != nil {
 		return err
 	}

@@ -12,7 +12,7 @@ import (
 	"gopkg.in/src-d/go-billy.v4/memfs"
 	"gopkg.in/src-d/go-billy.v4/osfs"
 
-	"github.com/tie/modpacker"
+	"github.com/tie/modpacker/fetcher"
 )
 
 type DownloadCommand struct {
@@ -54,13 +54,13 @@ func (cmd *DownloadCommand) Execute(ctx context.Context, fs *flag.FlagSet, args 
 		cacheDir = memfs.New()
 	}
 	c := http.Client{}
-	dl := modpacker.Downloader{
+	fetcher := fetcher.Fetcher{
 		Files:  cacheDir,
 		Client: &c,
 	}
 
 	for _, mod := range m.ModList() {
-		err := dl.Cache(mod)
+		err := fetcher.Cache(mod)
 		if err != nil {
 			log.Printf("download %q mod: %+v", mod.Method, err)
 			return subcommands.ExitFailure

@@ -15,7 +15,8 @@ import (
 	"gopkg.in/src-d/go-billy.v4/memfs"
 	"gopkg.in/src-d/go-billy.v4/osfs"
 
-	"github.com/tie/modpacker"
+	"github.com/tie/modpacker/builder"
+	"github.com/tie/modpacker/fetcher"
 )
 
 const (
@@ -116,17 +117,17 @@ func (cmd *CompileCommand) Execute(ctx context.Context, fs *flag.FlagSet, args .
 		}
 	}()
 
-	dl := &modpacker.Downloader{
+	fetcher := &fetcher.Fetcher{
 		Files:  cacheDir,
 		Client: &http.Client{},
 	}
 
-	var b modpacker.Builder
+	var b builder.Builder
 	switch cmd.OutputMode {
 	case OutputModeStandalone:
-		b = modpacker.NewArchiveBuilder(dl, z)
+		b = builder.NewArchiveBuilder(fetcher, z)
 	case OutputModeCurse:
-		b = modpacker.NewCurseBuilder(dl, z)
+		b = builder.NewCurseBuilder(fetcher, z)
 	}
 
 	for _, mod := range m.ModList() {

@@ -1,4 +1,4 @@
-package modpacker
+package fetcher
 
 import (
 	"fmt"
@@ -12,6 +12,8 @@ import (
 	"gopkg.in/src-d/go-billy.v4"
 
 	"github.com/andybalholm/cascadia"
+
+	"github.com/tie/modpacker/models"
 )
 
 var optifineSel = cascadia.MustCompile("#Download > a")
@@ -21,11 +23,11 @@ func optifineURL(file string) string {
 	return fmt.Sprintf(u, url.QueryEscape(file))
 }
 
-func optifineCachePath(fs billy.Basic, m Mod) (dir, base string) {
+func optifineCachePath(fs billy.Basic, m models.Mod) (dir, base string) {
 	return "optifine", m.File
 }
 
-func optifineFetchURL(c *http.Client, m Mod) (string, error) {
+func optifineFetchURL(c *http.Client, m models.Mod) (string, error) {
 	u := optifineURL(m.File)
 	resp, err := c.Get(u)
 	if err != nil {
@@ -48,11 +50,11 @@ func optifineFetchURL(c *http.Client, m Mod) (string, error) {
 	}
 	n := optifineSel.MatchFirst(root)
 	if n.Type != html.ElementNode {
-		err := ErrUnexpectedNode
+		err := models.ErrUnexpectedNode
 		return "", err
 	}
 	if n.Namespace != "" || n.Data != "a" {
-		err := ErrUnexpectedNode
+		err := models.ErrUnexpectedNode
 		return "", err
 	}
 	for _, attr := range n.Attr {
@@ -65,5 +67,5 @@ func optifineFetchURL(c *http.Client, m Mod) (string, error) {
 		rawurl := fmt.Sprintf("https://optifine.net/%s", attr.Val)
 		return rawurl, nil
 	}
-	return "", ErrUnexpectedNode
+	return "", models.ErrUnexpectedNode
 }

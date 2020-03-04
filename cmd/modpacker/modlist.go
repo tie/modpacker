@@ -1,11 +1,11 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"flag"
 	"html/template"
 	"log"
-	"bytes"
 
 	"github.com/google/subcommands"
 
