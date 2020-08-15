@@ -12,6 +12,8 @@ import (
 	"github.com/hashicorp/hcl/v2/hclparse"
 
 	"github.com/tie/internal/robustio"
+
+	"github.com/tie/modpacker/pack/hclspec"
 )
 
 func cacheDir(p string) (string, error) {
@@ -65,46 +67,52 @@ func fdinfo(fd int) (istty, color bool) {
 	return
 }
 
-func mergeManifests(paths []string) (Manifest, bool) {
-	var m Manifest
-	var files []*hcl.File
+func parseManifests(paths []string) ([]hclspec.Manifest, bool) {
+	ms := make([]hclspec.Manifest, len(paths))
+
+	// Continue on error to print diagnostics for all files.
+	allOK := true
+	for i, path := range paths {
+		m, ok := parseManifest(path)
+		if !ok {
+			allOK = false
+			continue
+		}
+		ms[i] = m
+	}
+	return ms, allOK
+}
+
+func parseManifest(path string) (hclspec.Manifest, bool) {
+	var m hclspec.Manifest
 	var diags hcl.Diagnostics
+
 	parser := hclparse.NewParser()
 	diagWr, _ := newDiagWr(parser)
-	for _, fpath := range paths {
-		src, err := robustio.ReadFile(fpath)
-		if err != nil {
-			log.Printf("read %q: %+v", fpath, err)
-			return m, false
-		}
-		file, parseDiags := parser.ParseHCL(src, fpath)
-		diags = append(diags, parseDiags...)
-		if parseDiags.HasErrors() {
-			err := diagWr.WriteDiagnostics(diags)
-			if err != nil {
-				log.Printf("write diags: %+v", err)
-			}
-			return m, false
-		}
-		files = append(files, file)
+
+	src, err := robustio.ReadFile(path)
+	if err != nil {
+		log.Printf("read %q: %+v", path, err)
+		return m, false
 	}
+
+	file, parseDiags := parser.ParseHCL(src, path)
+	diags = append(diags, parseDiags...)
 	if diags.HasErrors() {
+		// Write diagnostics on parser error.
 		err := diagWr.WriteDiagnostics(diags)
 		if err != nil {
 			log.Printf("write diags: %+v", err)
 		}
 		return m, false
 	}
-	body := hcl.MergeFiles(files)
-	decodeDiags := gohcl.DecodeBody(body, nil, &m)
+
+	decodeDiags := gohcl.DecodeBody(file.Body, nil, &m)
 	diags = append(diags, decodeDiags...)
-	err := diagWr.WriteDiagnostics(diags)
-	if err != nil {
+	if err := diagWr.WriteDiagnostics(diags); err != nil {
 		log.Printf("write diags: %+v", err)
 		return m, false
 	}
-	if diags.HasErrors() {
-		return m, false
-	}
-	return m, true
+
+	return m, diags.HasErrors()
 }

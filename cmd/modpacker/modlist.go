@@ -10,6 +10,8 @@ import (
 	"github.com/google/subcommands"
 
 	"github.com/tie/internal/renameio"
+
+	"github.com/tie/modpacker/pack"
 )
 
 const modlistTemplate = `<!doctype html>
@@ -53,12 +55,12 @@ func (cmd *ModlistCommand) Execute(ctx context.Context, fs *flag.FlagSet, args .
 		paths = []string{defaultManifest}
 	}
 
-	m, ok := mergeManifests(paths)
+	ms, ok := parseManifests(paths)
 	if !ok {
 		return subcommands.ExitFailure
 	}
 
-	modlist := m.ModList()
+	modlist := pack.ModList(ms)
 
 	var buf bytes.Buffer
 	if err := tpl.Execute(&buf, modlist); err != nil {

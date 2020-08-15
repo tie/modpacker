@@ -18,7 +18,8 @@ import (
 	"github.com/tie/internal/renameio"
 
 	"github.com/tie/modpacker/fetcher"
-	"github.com/tie/modpacker/models"
+	"github.com/tie/modpacker/modpacker"
+	"github.com/tie/modpacker/pack"
 )
 
 type SumsCommand struct {
@@ -50,7 +51,7 @@ func (cmd *SumsCommand) Execute(ctx context.Context, fs *flag.FlagSet, args ...i
 		paths = []string{defaultManifest}
 	}
 
-	m, ok := mergeManifests(paths)
+	ms, ok := parseManifests(paths)
 	if !ok {
 		return subcommands.ExitFailure
 	}
@@ -78,7 +79,7 @@ func (cmd *SumsCommand) Execute(ctx context.Context, fs *flag.FlagSet, args ...i
 		Body: body,
 	}
 
-	for _, mod := range m.ModList() {
+	for _, mod := range pack.ModList(ms) {
 		sums, err := fetcher.Sums(mod)
 		if err != nil {
 			log.Printf("sum %q mod: %+v", mod.Method, err)
@@ -105,7 +106,7 @@ type SumsBuilder struct {
 	Length int
 }
 
-func (b *SumsBuilder) Add(m models.Mod, sums []string) {
+func (b *SumsBuilder) Add(m modpacker.Mod, sums []string) {
 	if b.Length > 0 {
 		b.AppendNewline()
 	}

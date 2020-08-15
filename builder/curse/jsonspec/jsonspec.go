@@ -1,4 +1,4 @@
-package curse
+package jsonspec
 
 type Manifest struct {
 	ManifestType    string `json:"manifestType"`

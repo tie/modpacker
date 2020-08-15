@@ -1,4 +1,4 @@
-package builder
+package archive
 
 import (
 	"archive/zip"
@@ -9,20 +9,23 @@ import (
 	"gopkg.in/src-d/go-billy.v4"
 	"gopkg.in/src-d/go-billy.v4/util"
 
+	"github.com/tie/modpacker/builder"
 	"github.com/tie/modpacker/fetcher"
-	"github.com/tie/modpacker/models"
+	"github.com/tie/modpacker/modpacker"
 )
 
-type archiveBuilder struct {
+var _ builder.Builder = (*ArchiveBuilder)(nil)
+
+type ArchiveBuilder struct {
 	Downloader *fetcher.Fetcher
-	Pack       *zip.Writer
+	Archive    *zip.Writer
 }
 
-func NewArchiveBuilder(dl *fetcher.Fetcher, w *zip.Writer) Builder {
-	return &archiveBuilder{dl, w}
+func NewArchiveBuilder(dl *fetcher.Fetcher, w *zip.Writer) *ArchiveBuilder {
+	return &ArchiveBuilder{dl, w}
 }
 
-func (b *archiveBuilder) Add(m models.Mod) error {
+func (b *ArchiveBuilder) Add(m modpacker.Mod) error {
 	src, err := b.Downloader.Open(m)
 	if err != nil {
 		return err
@@ -34,15 +37,15 @@ func (b *archiveBuilder) Add(m models.Mod) error {
 		}
 	}()
 	switch m.Action {
-	case models.ActionNone:
-		return b.addReader(src, m.Path)
-	case models.ActionUnzip:
-		return b.addUnzip(src, m.Path)
+	case modpacker.ActionNone:
+		return b.AddReader(src, m.Path)
+	case modpacker.ActionUnzip:
+		return b.AddUnzip(src, m.Path)
 	}
-	return models.ErrUnknownModAction
+	return builder.ErrUnknownModAction
 }
 
-func (b *archiveBuilder) addUnzip(f billy.File, dir string) error {
+func (b *ArchiveBuilder) AddUnzip(f billy.File, dir string) error {
 	fi, err := util.Stat(f)
 	if err != nil {
 		return err
@@ -53,6 +56,7 @@ func (b *archiveBuilder) addUnzip(f billy.File, dir string) error {
 		return err
 	}
 	for _, f := range z.File {
+		// FIXME don’t ignore empty directories.
 		// If last char in file name is slash,
 		// then the file is empty and represents
 		// a directory. We skip those for brevity.
@@ -64,7 +68,7 @@ func (b *archiveBuilder) addUnzip(f billy.File, dir string) error {
 		}
 		// TODO should we sanitize name?
 		name := path.Join(dir, f.Name)
-		err := b.addZipFile(f, name)
+		err := b.AddZipFile(f, name)
 		if err != nil {
 			return err
 		}
@@ -72,16 +76,16 @@ func (b *archiveBuilder) addUnzip(f billy.File, dir string) error {
 	return nil
 }
 
-func (b *archiveBuilder) addZipFile(f *zip.File, name string) error {
+func (b *ArchiveBuilder) AddZipFile(f *zip.File, name string) error {
 	r, err := f.Open()
 	if err != nil {
 		return err
 	}
-	return b.addReader(r, name)
+	return b.AddReader(r, name)
 }
 
-func (b *archiveBuilder) addReader(r io.Reader, name string) error {
-	w, err := b.Pack.Create(name)
+func (b *ArchiveBuilder) AddReader(r io.Reader, name string) error {
+	w, err := b.Archive.Create(name)
 	if err != nil {
 		return err
 	}
@@ -89,6 +93,6 @@ func (b *archiveBuilder) addReader(r io.Reader, name string) error {
 	return err
 }
 
-func (b *archiveBuilder) Close() error {
+func (b *ArchiveBuilder) Close() error {
 	return nil
 }

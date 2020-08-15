@@ -1,6 +1,7 @@
 package fetcher
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -13,8 +14,10 @@ import (
 
 	"github.com/andybalholm/cascadia"
 
-	"github.com/tie/modpacker/models"
+	"github.com/tie/modpacker/modpacker"
 )
+
+var ErrUnexpectedNode = errors.New("unexpected html node")
 
 var optifineSel = cascadia.MustCompile("#Download > a")
 
@@ -23,11 +26,11 @@ func optifineURL(file string) string {
 	return fmt.Sprintf(u, url.QueryEscape(file))
 }
 
-func optifineCachePath(fs billy.Basic, m models.Mod) (dir, base string) {
+func optifineCachePath(fs billy.Basic, m modpacker.Mod) (dir, base string) {
 	return "optifine", m.File
 }
 
-func optifineFetchURL(c *http.Client, m models.Mod) (string, error) {
+func optifineFetchURL(c *http.Client, m modpacker.Mod) (string, error) {
 	u := optifineURL(m.File)
 	resp, err := c.Get(u)
 	if err != nil {
@@ -50,11 +53,11 @@ func optifineFetchURL(c *http.Client, m models.Mod) (string, error) {
 	}
 	n := optifineSel.MatchFirst(root)
 	if n.Type != html.ElementNode {
-		err := models.ErrUnexpectedNode
+		err := ErrUnexpectedNode
 		return "", err
 	}
 	if n.Namespace != "" || n.Data != "a" {
-		err := models.ErrUnexpectedNode
+		err := ErrUnexpectedNode
 		return "", err
 	}
 	for _, attr := range n.Attr {
@@ -67,5 +70,5 @@ func optifineFetchURL(c *http.Client, m models.Mod) (string, error) {
 		rawurl := fmt.Sprintf("https://optifine.net/%s", attr.Val)
 		return rawurl, nil
 	}
-	return "", models.ErrUnexpectedNode
+	return "", ErrUnexpectedNode
 }

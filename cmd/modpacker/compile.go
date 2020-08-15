@@ -16,7 +16,10 @@ import (
 	"gopkg.in/src-d/go-billy.v4/osfs"
 
 	"github.com/tie/modpacker/builder"
+	"github.com/tie/modpacker/builder/archive"
+	"github.com/tie/modpacker/builder/curse"
 	"github.com/tie/modpacker/fetcher"
+	"github.com/tie/modpacker/pack"
 )
 
 const (
@@ -76,7 +79,7 @@ func (cmd *CompileCommand) Execute(ctx context.Context, fs *flag.FlagSet, args .
 		return subcommands.ExitFailure
 	}
 
-	m, ok := mergeManifests(paths)
+	ms, ok := parseManifests(paths)
 	if !ok {
 		return subcommands.ExitFailure
 	}
@@ -125,12 +128,12 @@ func (cmd *CompileCommand) Execute(ctx context.Context, fs *flag.FlagSet, args .
 	var b builder.Builder
 	switch cmd.OutputMode {
 	case OutputModeStandalone:
-		b = builder.NewArchiveBuilder(fetcher, z)
+		b = archive.NewArchiveBuilder(fetcher, z)
 	case OutputModeCurse:
-		b = builder.NewCurseBuilder(fetcher, z)
+		b = curse.NewCurseBuilder(fetcher, z)
 	}
 
-	for _, mod := range m.ModList() {
+	for _, mod := range pack.ModList(ms) {
 		err := b.Add(mod)
 		if err != nil {
 			log.Printf("add %q mod: %+v", mod.Method, err)

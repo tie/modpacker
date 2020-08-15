@@ -21,6 +21,8 @@ import (
 
 	"github.com/tie/internal/renameio"
 	"github.com/tie/internal/robustio"
+
+	"github.com/tie/modpacker/pack/hclspec"
 )
 
 type FormatCommand struct {
@@ -84,7 +86,8 @@ func (cmd *FormatCommand) Execute(ctx context.Context, fs *flag.FlagSet, args ..
 				}
 				return subcommands.ExitFailure
 			}
-			decodeDiags := gohcl.DecodeBody(file.Body, nil, &Manifest{})
+			var m hclspec.Manifest
+			decodeDiags := gohcl.DecodeBody(file.Body, nil, &m)
 			diags = append(diags, decodeDiags...)
 			err := diagWr.WriteDiagnostics(diags)
 			if err != nil {

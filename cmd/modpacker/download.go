@@ -13,6 +13,7 @@ import (
 	"gopkg.in/src-d/go-billy.v4/osfs"
 
 	"github.com/tie/modpacker/fetcher"
+	"github.com/tie/modpacker/pack"
 )
 
 type DownloadCommand struct {
@@ -37,7 +38,8 @@ func (cmd *DownloadCommand) SetFlags(fs *flag.FlagSet) {
 
 func (cmd *DownloadCommand) Execute(ctx context.Context, fs *flag.FlagSet, args ...interface{}) subcommands.ExitStatus {
 	paths := fs.Args()
-	m, ok := mergeManifests(paths)
+
+	ms, ok := parseManifests(paths)
 	if !ok {
 		return subcommands.ExitFailure
 	}
@@ -59,7 +61,7 @@ func (cmd *DownloadCommand) Execute(ctx context.Context, fs *flag.FlagSet, args 
 		Client: &c,
 	}
 
-	for _, mod := range m.ModList() {
+	for _, mod := range pack.ModList(ms) {
 		err := fetcher.Cache(mod)
 		if err != nil {
 			log.Printf("download %q mod: %+v", mod.Method, err)

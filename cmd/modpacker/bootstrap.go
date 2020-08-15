@@ -16,7 +16,8 @@ import (
 
 	"github.com/tie/internal/renameio"
 
-	"github.com/tie/modpacker/models/curse"
+	"github.com/tie/modpacker/builder/curse/jsonspec"
+	"github.com/tie/modpacker/pack/hclspec"
 )
 
 type BootstrapCommand struct {
@@ -48,23 +49,22 @@ func (cmd *BootstrapCommand) Execute(ctx context.Context, fs *flag.FlagSet, args
 		return subcommands.ExitFailure
 	}
 
-	var cm curse.Manifest
+	var cm jsonspec.Manifest
 	if err := json.NewDecoder(f).Decode(&cm); err != nil {
 		log.Printf("decode %q: %+v", fpath, err)
 		return subcommands.ExitFailure
 	}
 
-	var m Manifest
-	m.Mods = make([]Mod, 0, len(cm.Files))
-	for _, cf := range cm.Files {
+	var m hclspec.Manifest
+	m.Mods = make([]hclspec.Mod, len(cm.Files))
+	for i, cf := range cm.Files {
 		path := fmt.Sprintf("mods/%d-%d.jar", cf.ProjectID, cf.FileID)
-		mod := Mod{
+		m.Mods[i] = hclspec.Mod{
 			Path:      path,
 			Method:    "curse",
 			ProjectID: cf.ProjectID,
 			FileID:    cf.FileID,
 		}
-		m.Mods = append(m.Mods, mod)
 	}
 
 	opath := filepath.FromSlash(cm.Overrides)
@@ -79,7 +79,7 @@ func (cmd *BootstrapCommand) Execute(ctx context.Context, fs *flag.FlagSet, args
 		if err != nil {
 			return err
 		}
-		mod := Mod{
+		mod := hclspec.Mod{
 			Path: rpath,
 			File: fpath,
 		}

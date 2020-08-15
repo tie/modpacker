@@ -10,7 +10,7 @@ import (
 
 	"gopkg.in/src-d/go-billy.v4"
 
-	"github.com/tie/modpacker/models"
+	"github.com/tie/modpacker/modpacker"
 )
 
 func curseURL(projectID, fileID int) string {
@@ -18,13 +18,13 @@ func curseURL(projectID, fileID int) string {
 	return fmt.Sprintf(u, projectID, fileID)
 }
 
-func curseCachePath(fs billy.Basic, m models.Mod) (dir, base string) {
+func curseCachePath(fs billy.Basic, m modpacker.Mod) (dir, base string) {
 	projectID := strconv.Itoa(m.ProjectID)
 	fileID := strconv.Itoa(m.FileID)
 	return fs.Join("curse", projectID), fileID
 }
 
-func curseFetchURL(c *http.Client, m models.Mod) (string, error) {
+func curseFetchURL(c *http.Client, m modpacker.Mod) (string, error) {
 	u := curseURL(m.ProjectID, m.FileID)
 	resp, err := c.Get(u)
 	if err != nil {
@@ -38,7 +38,7 @@ func curseFetchURL(c *http.Client, m models.Mod) (string, error) {
 		}
 	}()
 
-	// Don’t read URLs larger than 1KiB.
+	// Don’t read responses larger than 1KiB.
 	lr := io.LimitReader(r, 1024)
 
 	var b strings.Builder

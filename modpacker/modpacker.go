@@ -1,4 +1,4 @@
-package models
+package modpacker
 
 const (
 	MethodFile     = ""
@@ -17,7 +17,7 @@ type Mod struct {
 	Path string
 
 	// Method is the method used for downloading the mod.
-	// Possible values: "curse", "optifine".
+	// Possible values: "", "curse", "optifine", "http".
 	Method string
 
 	// Action is the additional action to perform
