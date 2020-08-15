@@ -1,0 +1,57 @@
+# github.com/agext/levenshtein v1.2.1
+github.com/agext/levenshtein
+# github.com/andybalholm/cascadia v1.1.0
+github.com/andybalholm/cascadia
+# github.com/apparentlymart/go-textseg v1.0.0
+github.com/apparentlymart/go-textseg/textseg
+# github.com/google/go-cmp v0.2.0
+github.com/google/go-cmp/cmp
+github.com/google/go-cmp/cmp/internal/diff
+github.com/google/go-cmp/cmp/internal/function
+github.com/google/go-cmp/cmp/internal/value
+# github.com/google/subcommands v1.0.1
+github.com/google/subcommands
+# github.com/hashicorp/hcl/v2 v2.1.0
+github.com/hashicorp/hcl/v2
+github.com/hashicorp/hcl/v2/gohcl
+github.com/hashicorp/hcl/v2/hclparse
+github.com/hashicorp/hcl/v2/hclsyntax
+github.com/hashicorp/hcl/v2/hclwrite
+github.com/hashicorp/hcl/v2/json
+# github.com/mitchellh/go-wordwrap v0.0.0-20150314170334-ad45545899c7
+github.com/mitchellh/go-wordwrap
+# github.com/pkg/diff v0.0.0-20190930165518-531926345625
+github.com/pkg/diff
+# github.com/tie/internal v0.0.0-20191125222958-4c3152d9f9ef
+github.com/tie/internal/renameio
+github.com/tie/internal/robustio
+github.com/tie/internal/syscall/windows
+github.com/tie/internal/syscall/windows/sysdll
+# github.com/zclconf/go-cty v1.1.0
+github.com/zclconf/go-cty/cty
+github.com/zclconf/go-cty/cty/convert
+github.com/zclconf/go-cty/cty/function
+github.com/zclconf/go-cty/cty/function/stdlib
+github.com/zclconf/go-cty/cty/gocty
+github.com/zclconf/go-cty/cty/json
+github.com/zclconf/go-cty/cty/set
+# golang.org/x/crypto v0.0.0-20190510104115-cbcb75029529
+golang.org/x/crypto/sha3
+golang.org/x/crypto/ssh/terminal
+# golang.org/x/net v0.0.0-20191119073136-fc4aabc6c914
+golang.org/x/net/html
+golang.org/x/net/html/atom
+# golang.org/x/sys v0.0.0-20191008105621-543471e840be
+golang.org/x/sys/cpu
+golang.org/x/sys/unix
+golang.org/x/sys/windows
+# golang.org/x/text v0.3.2
+golang.org/x/text/transform
+golang.org/x/text/unicode/norm
+# gopkg.in/src-d/go-billy.v4 v4.3.2 => github.com/tie/go-billy v0.0.0-20191123113025-16c87c3285a3
+gopkg.in/src-d/go-billy.v4
+gopkg.in/src-d/go-billy.v4/helper/chroot
+gopkg.in/src-d/go-billy.v4/helper/polyfill
+gopkg.in/src-d/go-billy.v4/memfs
+gopkg.in/src-d/go-billy.v4/osfs
+gopkg.in/src-d/go-billy.v4/util
