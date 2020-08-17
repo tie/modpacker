@@ -16,7 +16,8 @@ import (
 
 	"golang.org/x/crypto/sha3"
 
-	"gopkg.in/src-d/go-billy.v4"
+	"github.com/go-git/go-billy/v5"
+	"github.com/go-git/go-billy/v5/osfs"
 
 	"github.com/tie/modpacker/modpacker"
 )
@@ -86,11 +87,11 @@ func (dl *Fetcher) Open(m modpacker.Mod) (billy.File, error) {
 		return dl.downloadGeneric(m, httpCachePath, httpFetchURL)
 	case modpacker.MethodFile:
 		path := filepath.FromSlash(m.File)
-		f, err := os.Open(path)
+		f, err := osfs.New("").Open(path)
 		if err != nil {
 			return nil, err
 		}
-		return osFile{f}, err
+		return f, err
 	}
 	return nil, ErrUnknownModMethod
 }

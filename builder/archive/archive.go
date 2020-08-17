@@ -6,8 +6,7 @@ import (
 	"log"
 	"path"
 
-	"gopkg.in/src-d/go-billy.v4"
-	"gopkg.in/src-d/go-billy.v4/util"
+	"github.com/go-git/go-billy/v5"
 
 	"github.com/tie/modpacker/builder"
 	"github.com/tie/modpacker/fetcher"
@@ -46,7 +45,7 @@ func (b *ArchiveBuilder) Add(m modpacker.Mod) error {
 }
 
 func (b *ArchiveBuilder) AddUnzip(f billy.File, dir string) error {
-	fi, err := util.Stat(f)
+	fi, err := billy.Stat(f)
 	if err != nil {
 		return err
 	}

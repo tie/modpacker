@@ -11,9 +11,9 @@ import (
 
 	"github.com/google/subcommands"
 
-	"gopkg.in/src-d/go-billy.v4"
-	"gopkg.in/src-d/go-billy.v4/memfs"
-	"gopkg.in/src-d/go-billy.v4/osfs"
+	"github.com/go-git/go-billy/v5"
+	"github.com/go-git/go-billy/v5/memfs"
+	"github.com/go-git/go-billy/v5/osfs"
 
 	"github.com/tie/modpacker/builder"
 	"github.com/tie/modpacker/builder/archive"
