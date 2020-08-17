@@ -114,5 +114,5 @@ func parseManifest(path string) (hclspec.Manifest, bool) {
 		return m, false
 	}
 
-	return m, diags.HasErrors()
+	return m, !diags.HasErrors()
 }
