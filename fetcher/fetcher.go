@@ -36,7 +36,7 @@ func httpCachePath(fs billy.Basic, m modpacker.Mod) (dir, base string) {
 	// Good enough is good enough.
 	sum := sha1.Sum([]byte(m.File))
 	hex := fmt.Sprintf("%x", sum)
-	return "http", fs.Join(hex[2:], hex)
+	return "http", fs.Join(hex[:2], hex)
 }
 
 func httpFetchURL(c *http.Client, m modpacker.Mod) (string, error) {
