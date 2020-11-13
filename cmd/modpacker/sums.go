@@ -5,12 +5,15 @@ import (
 	"flag"
 	"log"
 	"net/http"
+	"path/filepath"
 
 	"github.com/google/subcommands"
 
 	"github.com/hashicorp/hcl/v2/hclwrite"
 	"github.com/zclconf/go-cty/cty"
 
+	"github.com/akrylysov/pogreb"
+	"github.com/akrylysov/pogreb/fs"
 	"github.com/go-git/go-billy/v5"
 	"github.com/go-git/go-billy/v5/memfs"
 	"github.com/go-git/go-billy/v5/osfs"
@@ -40,13 +43,13 @@ Flags:
 `
 }
 
-func (cmd *SumsCommand) SetFlags(fs *flag.FlagSet) {
-	fs.BoolVar(&cmd.DisableCache, "nocache", false, "disable filesystem cache")
-	fs.StringVar(&cmd.OutputPath, "o", "sums.hcl", "manifest output path")
+func (cmd *SumsCommand) SetFlags(f *flag.FlagSet) {
+	f.BoolVar(&cmd.DisableCache, "nocache", false, "disable filesystem cache")
+	f.StringVar(&cmd.OutputPath, "o", "sums.pack", "manifest output path")
 }
 
-func (cmd *SumsCommand) Execute(ctx context.Context, fs *flag.FlagSet, args ...interface{}) subcommands.ExitStatus {
-	paths := fs.Args()
+func (cmd *SumsCommand) Execute(ctx context.Context, f *flag.FlagSet, args ...interface{}) subcommands.ExitStatus {
+	paths := f.Args()
 	if len(paths) <= 0 {
 		paths = []string{defaultManifest}
 	}
@@ -56,25 +59,52 @@ func (cmd *SumsCommand) Execute(ctx context.Context, fs *flag.FlagSet, args ...i
 		return subcommands.ExitFailure
 	}
 
-	var cacheDir billy.Filesystem
+	var cachePath string
 	if !cmd.DisableCache {
-		cache, err := makeCache(programName)
+		var err error
+		cachePath, err = makeCache(programName)
 		if err != nil {
 			log.Printf("make cache: %+v", err)
 			return subcommands.ExitFailure
 		}
-		cacheDir = osfs.New(cache)
-	} else {
-		cacheDir = memfs.New()
-	}
-	c := http.Client{}
-	fetcher := fetcher.Fetcher{
-		Files:  cacheDir,
-		Client: &c,
 	}
 
-	f := hclwrite.NewEmptyFile()
-	body := f.Body()
+	var cachefs billy.Filesystem
+	if !cmd.DisableCache {
+		cachefs = osfs.New(cachePath)
+	} else {
+		cachefs = memfs.New()
+	}
+
+	var db *pogreb.DB
+	if !cmd.DisableCache {
+		var err error
+		db, err = pogreb.Open(filepath.Join(cachePath, "db"), nil)
+		if err != nil {
+			log.Printf("open pogreb: %+v", err)
+			return subcommands.ExitFailure
+		}
+	} else {
+		// BUG pogreb.Open always calls os.MkdirAll
+		var err error
+		db, err = pogreb.Open(".", &pogreb.Options{
+			FileSystem: fs.Mem,
+		})
+		if err != nil {
+			panic(err)
+		}
+	}
+
+	c := http.Client{}
+
+	fetcher := fetcher.Fetcher{
+		Database: db,
+		Files:    cachefs,
+		Client:   &c,
+	}
+
+	sumsFile := hclwrite.NewEmptyFile()
+	body := sumsFile.Body()
 	sb := SumsBuilder{
 		Body: body,
 	}
@@ -92,7 +122,7 @@ func (cmd *SumsCommand) Execute(ctx context.Context, fs *flag.FlagSet, args ...i
 	}
 
 	fpath := cmd.OutputPath
-	outSrc := f.Bytes()
+	outSrc := sumsFile.Bytes()
 	if err := renameio.WriteFile(fpath, outSrc, 0644); err != nil {
 		log.Printf("write file %q: %+v", fpath, err)
 		return subcommands.ExitFailure

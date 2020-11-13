@@ -21,10 +21,10 @@ func (*CleanCommand) Usage() string {
 `
 }
 
-func (cmd *CleanCommand) SetFlags(fs *flag.FlagSet) {
+func (cmd *CleanCommand) SetFlags(f *flag.FlagSet) {
 }
 
-func (cmd *CleanCommand) Execute(ctx context.Context, fs *flag.FlagSet, args ...interface{}) subcommands.ExitStatus {
+func (cmd *CleanCommand) Execute(ctx context.Context, f *flag.FlagSet, args ...interface{}) subcommands.ExitStatus {
 	path, err := cacheDir(programName)
 	if err != nil {
 		log.Printf("cache path: %+v", err)

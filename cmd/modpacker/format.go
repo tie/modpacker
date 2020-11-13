@@ -43,13 +43,13 @@ Flags:
 `
 }
 
-func (cmd *FormatCommand) SetFlags(fs *flag.FlagSet) {
-	fs.BoolVar(&cmd.DisableCheck, "nocheck", false, "disable diagnostics")
-	fs.BoolVar(&cmd.Overwrite, "w", false, "write result to (source) file instead of stdout")
-	fs.IntVar(&cmd.ContextSize, "c", 3, "output n lines of diff context")
+func (cmd *FormatCommand) SetFlags(f *flag.FlagSet) {
+	f.BoolVar(&cmd.DisableCheck, "nocheck", false, "disable diagnostics")
+	f.BoolVar(&cmd.Overwrite, "w", false, "write result to (source) file instead of stdout")
+	f.IntVar(&cmd.ContextSize, "c", 3, "output n lines of diff context")
 }
 
-func (cmd *FormatCommand) Execute(ctx context.Context, fs *flag.FlagSet, args ...interface{}) subcommands.ExitStatus {
+func (cmd *FormatCommand) Execute(ctx context.Context, f *flag.FlagSet, args ...interface{}) subcommands.ExitStatus {
 	var color bool
 	var parser *hclparse.Parser
 	var diagWr hcl.DiagnosticWriter
@@ -58,7 +58,7 @@ func (cmd *FormatCommand) Execute(ctx context.Context, fs *flag.FlagSet, args ..
 		diagWr, color = newDiagWr(parser)
 	}
 
-	paths := fs.Args()
+	paths := f.Args()
 	if len(paths) <= 0 {
 		paths = []string{defaultManifest}
 	} else {

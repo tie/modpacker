@@ -3,6 +3,7 @@ module github.com/tie/modpacker
 go 1.14
 
 require (
+	github.com/akrylysov/pogreb v0.9.1
 	github.com/andybalholm/cascadia v1.2.0
 	github.com/go-git/go-billy/v5 v5.0.0
 	github.com/google/subcommands v1.2.0

@@ -16,6 +16,7 @@ import (
 
 	"golang.org/x/crypto/sha3"
 
+	"github.com/akrylysov/pogreb"
 	"github.com/go-git/go-billy/v5"
 	"github.com/go-git/go-billy/v5/osfs"
 
@@ -44,8 +45,9 @@ func httpFetchURL(c *http.Client, m modpacker.Mod) (string, error) {
 }
 
 type Fetcher struct {
-	Files  billy.Filesystem
-	Client *http.Client
+	Database *pogreb.DB
+	Files    billy.Filesystem
+	Client   *http.Client
 }
 
 func (dl *Fetcher) Sums(m modpacker.Mod) ([]string, error) {

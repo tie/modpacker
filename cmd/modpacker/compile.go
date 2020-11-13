@@ -8,9 +8,12 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"path/filepath"
 
 	"github.com/google/subcommands"
 
+	"github.com/akrylysov/pogreb"
+	"github.com/akrylysov/pogreb/fs"
 	"github.com/go-git/go-billy/v5"
 	"github.com/go-git/go-billy/v5/memfs"
 	"github.com/go-git/go-billy/v5/osfs"
@@ -59,14 +62,14 @@ Flags:
 `
 }
 
-func (cmd *CompileCommand) SetFlags(fs *flag.FlagSet) {
-	fs.BoolVar(&cmd.DisableCache, "nocache", false, "disable filesystem cache")
-	fs.StringVar(&cmd.OutputPath, "o", "modpack.zip", "modpack output path")
-	fs.StringVar(&cmd.OutputMode, "mode", OutputModeStandalone, "modpack output mode")
+func (cmd *CompileCommand) SetFlags(f *flag.FlagSet) {
+	f.BoolVar(&cmd.DisableCache, "nocache", false, "disable filesystem cache")
+	f.StringVar(&cmd.OutputPath, "o", "modpack.zip", "modpack output path")
+	f.StringVar(&cmd.OutputMode, "mode", OutputModeStandalone, "modpack output mode")
 }
 
-func (cmd *CompileCommand) Execute(ctx context.Context, fs *flag.FlagSet, args ...interface{}) (rc subcommands.ExitStatus) {
-	paths := fs.Args()
+func (cmd *CompileCommand) Execute(ctx context.Context, f *flag.FlagSet, args ...interface{}) (rc subcommands.ExitStatus) {
+	paths := f.Args()
 	if len(paths) <= 0 {
 		paths = []string{defaultManifest}
 	}
@@ -84,33 +87,65 @@ func (cmd *CompileCommand) Execute(ctx context.Context, fs *flag.FlagSet, args .
 		return subcommands.ExitFailure
 	}
 
-	var cacheDir billy.Filesystem
+	var cachePath string
 	if !cmd.DisableCache {
-		cache, err := makeCache(programName)
+		var err error
+		cachePath, err = makeCache(programName)
 		if err != nil {
 			log.Printf("make cache: %+v", err)
 			return subcommands.ExitFailure
 		}
-		cacheDir = osfs.New(cache)
+	}
+
+	var cachefs billy.Filesystem
+	if !cmd.DisableCache {
+		cachefs = osfs.New(cachePath)
 	} else {
-		cacheDir = memfs.New()
+		cachefs = memfs.New()
+	}
+
+	var db *pogreb.DB
+	if !cmd.DisableCache {
+		var err error
+		db, err = pogreb.Open(filepath.Join(cachePath, "db"), nil)
+		if err != nil {
+			log.Printf("open pogreb: %+v", err)
+			return subcommands.ExitFailure
+		}
+	} else {
+		// BUG pogreb.Open always calls os.MkdirAll
+		var err error
+		db, err = pogreb.Open(".", &pogreb.Options{
+			FileSystem: fs.Mem,
+		})
+		if err != nil {
+			panic(err)
+		}
+	}
+
+	c := http.Client{}
+
+	fetcher := fetcher.Fetcher{
+		Database: db,
+		Files:    cachefs,
+		Client:   &c,
 	}
 
 	fpath := cmd.OutputPath
-	f, err := os.Create(fpath)
+	file, err := os.Create(fpath)
 	if err != nil {
 		log.Printf("create %q: %+v", fpath, err)
 		return subcommands.ExitFailure
 	}
 	defer func() {
-		err := f.Close()
+		err := file.Close()
 		if err != nil {
 			log.Printf("close %q: %+v", fpath, err)
 			rc = subcommands.ExitFailure
 		}
 	}()
 
-	w := bufio.NewWriter(f)
+	w := bufio.NewWriter(file)
 	z := zip.NewWriter(w)
 	defer func() {
 		err := z.Close()
@@ -120,17 +155,12 @@ func (cmd *CompileCommand) Execute(ctx context.Context, fs *flag.FlagSet, args .
 		}
 	}()
 
-	fetcher := &fetcher.Fetcher{
-		Files:  cacheDir,
-		Client: &http.Client{},
-	}
-
 	var b builder.Builder
 	switch cmd.OutputMode {
 	case OutputModeStandalone:
-		b = archive.NewArchiveBuilder(fetcher, z)
+		b = archive.NewArchiveBuilder(&fetcher, z)
 	case OutputModeCurse:
-		b = curse.NewCurseBuilder(fetcher, z)
+		b = curse.NewCurseBuilder(&fetcher, z)
 	}
 
 	for _, mod := range pack.ModList(ms) {

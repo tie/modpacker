@@ -19,11 +19,11 @@ func init() {
 }
 
 func main() {
-	fs := flag.NewFlagSet(programName, flag.ContinueOnError)
-	fs.Bool("h", false, "alias for help")
-	fs.Bool("help", false, "print usage")
+	f := flag.NewFlagSet(programName, flag.ContinueOnError)
+	f.Bool("h", false, "alias for help")
+	f.Bool("help", false, "print usage")
 
-	cdr := subcommands.NewCommander(fs, programName)
+	cdr := subcommands.NewCommander(f, programName)
 	cdr.Register(&BootstrapCommand{}, "")
 	cdr.Register(&CleanCommand{}, "")
 	cdr.Register(&CompileCommand{}, "")
@@ -35,7 +35,7 @@ func main() {
 	cdr.Register(cdr.FlagsCommand(), "help")
 	cdr.Register(cdr.CommandsCommand(), "help")
 
-	if err := fs.Parse(os.Args[1:]); err != nil {
+	if err := f.Parse(os.Args[1:]); err != nil {
 		log.Fatal(err)
 	}
 

@@ -38,19 +38,19 @@ Flags:
 `
 }
 
-func (cmd *ModlistCommand) SetFlags(fs *flag.FlagSet) {
-	fs.BoolVar(&cmd.DisableCache, "nocache", false, "disable filesystem cache")
-	fs.StringVar(&cmd.OutputPath, "o", "modlist.html", "modlist page output path")
+func (cmd *ModlistCommand) SetFlags(f *flag.FlagSet) {
+	f.BoolVar(&cmd.DisableCache, "nocache", false, "disable filesystem cache")
+	f.StringVar(&cmd.OutputPath, "o", "modlist.html", "modlist page output path")
 }
 
-func (cmd *ModlistCommand) Execute(ctx context.Context, fs *flag.FlagSet, args ...interface{}) subcommands.ExitStatus {
+func (cmd *ModlistCommand) Execute(ctx context.Context, f *flag.FlagSet, args ...interface{}) subcommands.ExitStatus {
 	tpl, err := template.New("modlist").Parse(modlistTemplate)
 	if err != nil {
 		log.Printf("parse modlist template: %+v", err)
 		return subcommands.ExitFailure
 	}
 
-	paths := fs.Args()
+	paths := f.Args()
 	if len(paths) <= 0 {
 		paths = []string{defaultManifest}
 	}

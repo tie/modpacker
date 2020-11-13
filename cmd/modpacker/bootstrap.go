@@ -36,21 +36,21 @@ Flags:
 `
 }
 
-func (cmd *BootstrapCommand) SetFlags(fs *flag.FlagSet) {
-	fs.StringVar(&cmd.CursePath, "curse", "manifest.json", "curse manifest path")
-	fs.StringVar(&cmd.OutputPath, "o", "base.pack", "output manifest path")
+func (cmd *BootstrapCommand) SetFlags(f *flag.FlagSet) {
+	f.StringVar(&cmd.CursePath, "curse", "manifest.json", "curse manifest path")
+	f.StringVar(&cmd.OutputPath, "o", "base.pack", "output manifest path")
 }
 
-func (cmd *BootstrapCommand) Execute(ctx context.Context, fs *flag.FlagSet, args ...interface{}) subcommands.ExitStatus {
+func (cmd *BootstrapCommand) Execute(ctx context.Context, f *flag.FlagSet, args ...interface{}) subcommands.ExitStatus {
 	fpath := cmd.CursePath
-	f, err := os.Open(fpath)
+	file, err := os.Open(fpath)
 	if err != nil {
 		log.Printf("open %q: %+v", fpath, err)
 		return subcommands.ExitFailure
 	}
 
 	var cm jsonspec.Manifest
-	if err := json.NewDecoder(f).Decode(&cm); err != nil {
+	if err := json.NewDecoder(file).Decode(&cm); err != nil {
 		log.Printf("decode %q: %+v", fpath, err)
 		return subcommands.ExitFailure
 	}
